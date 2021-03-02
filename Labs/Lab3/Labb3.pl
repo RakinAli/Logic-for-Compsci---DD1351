@@ -1,0 +1,136 @@
+% For SICStus, uncomment line below: (needed for member/2)
+%:- use_module(library(lists)).
+% Load model, initial state and formula from file.
+%
+verify(Input) :-
+    see(Input),
+    read(T),
+    read(L),
+    read(S),
+    read(F),
+    seen,
+check(T, L, S, [], F).
+
+
+% check(T, L, S, U, F)
+% T - The transitions in form of adjacency lists
+% L - The labeling
+% S - Current state
+% U - Currently recorded states
+% F - CTL Formula to check.
+
+
+%__________Literals________%
+
+%Check if the Label is inside the list
+check(_,L,S,[],X):-
+    member([S,LabelNames],L), % Iterates thru the Labels
+    member(X,LabelNames). % checks if X is the label
+
+% Check the normal Label IS NOT there in the Label
+check(_,L,S,[],neg(X)):-
+    member([S,LabelNames],L),
+    \+ member(X,LabelNames).
+
+%_____________ Simple Logic to handle ____________--
+
+% Or
+check(T,L,S,[],or(X,Y)):-
+    check(T,L,S,[],X);  %---,< try with semicolon ;
+    check(T,L,S,[],Y).
+
+%And
+check(T,L,S,[],and(X,Y)):-
+    check(T,L,S,[],X),
+    check(T,L,S,[],Y).
+%_____________________ HARDER LOGIC TO HANDLE _____________________
+
+%___ AX - I next state ___
+check(T,L,S,[],ax(X)):-
+    a_transitions(T,L,S,[],X).
+
+%___ AG - Always
+
+% Base case - In case we already have checked the states.
+check(_,_,S,U,ag(_)):-
+    member(S,U).
+
+check(T,L,S,U,ag(X)):-
+    \+member(S,U), %In case we have not checked the state
+    check(T,L,S,[],X),%We need to fill U now
+    a_transitions(T,L,S,[S|U],ag(X)).
+
+%___ AF - All eventually___
+
+check(T,L,S,U,af(X)):-
+    \+member(S,U), % Checks if S is NOT inside U-list
+    check(T,L,S,[],X). % Checks if we have X labelled
+
+%if the state has been
+check(T,L,S,U,af(X)):-
+    \+member(S,U),
+    a_transitions(T,L,S,[S|U],af(X)). %Builds the U list
+
+%___ EX - I some next state___
+
+check(T,L,S,[],ex(X)):-
+    e_transitions(T,L,S,[],X). % Just look for the X
+
+%___EG - There is a path where it always
+
+%if the state already has been checked then we gucci
+check(_,_,S,U,eg(_)):-
+    member(S,U).
+
+%If the state has NOT been checked then:
+check(T,L,S,U,eg(X)):-
+    \+member(S,U),
+    check(T,L,S,[],X), %Checks if
+    e_transitions(T,L,S,[S|U],eg(X)).
+
+%____EF -  There is a path eventually
+
+%the path may not be checked already
+check(T,L,S,U,ef(X)):-
+    \+member(S,U),
+    check(T,L,S,[],X).
+
+%Look for the specific transition
+check(T,L,S,U,ef(X)):-
+    \+member(S,U),
+    e_transitions(T,L,S,[S|U],ef(X)).
+
+%________________ Transition Handlers ____________
+
+%Checks all transitions
+a_transitions(T,L,S,U,F):-
+    member([S,ATrans],T), %Atrans will become T minus the S
+    a_states(T,L,U,F,ATrans). %a_states will check Atrans
+
+%Checks all the transitions
+a_states(_,_,_,_,[]).
+a_states(T,L,U,F,[Head|Tail]):-
+    check(T,L,Head,U,F), %Head labelled in L and F inside Head
+    a_states(T,L,U,F,Tail). %Recursively checks through Atrans
+
+
+%checks if only one transition suffices
+e_transitions(T,L,S,U,F):-
+    member([S,Variable],T), %Variable includes all transitions
+    e_states(T,L,U,F,Variable),!. %Only needs one transition
+
+e_states(T,L,U,F,[Head|Tail]):-
+    check(T,L,Head,U,F); %---< try with semicolon ;
+    e_states(T,L,U,F,Tail),!.
+%_____________________________________________________%
+
+
+
+
+
+
+
+
+
+
+

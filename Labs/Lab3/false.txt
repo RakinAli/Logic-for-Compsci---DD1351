@@ -1,0 +1,18 @@
+[[st, [ver]],
+[ver, [fi, vab]],
+[fi, [st, ver]],
+[vab, [ls, sb]],
+[ls, [st, vab]],
+[sb, [st]]].
+
+[[st, []],
+[ver, [u]],
+[fi, [u, f]],
+[vab, [u, r]],
+[ls, [u, ns]],
+[sb, [u, r, gs]]].
+
+st.
+
+ex(and(u,and(f,r))).
+

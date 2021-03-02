@@ -1,0 +1,104 @@
+%Takes an input file and saves the files premisses, goal and the proof
+% in the variables Prems, Goal and prrof. These are sent to predicates
+% that start the control
+
+%__________________ Main code ________________
+
+verify(InputFileName) :- see(InputFileName),
+    read(Prems),read(Goal), read(Proof),
+    seen,
+    valid_proof(Prems, Goal, Proof).
+
+% Controls if the proof is valid & if the goal matches the ending
+valid_proof(Prems, Goal, Proof):-
+    check_goal(Goal,Proof),
+    check_proof(Prems,Proof,[]), !.
+
+% Checks if the goal is the same as the last line in the proof.
+check_goal(Goal,Proof):-
+    last(Proof,LastRow),
+    nth1(2,LastRow,Goal).
+
+%____________________Add list functions____________________%
+
+% Puts an element in the list
+addList(H,CheckedList,NewList):-
+    appendEl(H,CheckedList,NewList),
+    print(CheckedList,NewList).
+
+%Puts an element last in a list
+appendEl(X,[],[X]).
+appendEl(X,[H|T],[H|Y]):-
+    appendEl(X,T,Y).
+
+%__________________ Checks the proof ______________________%
+check_proof(_,[],_).
+check_proof(Prems,[H|T],CheckedList):-
+    check_rule(Prems,H,CheckedList),
+    addList(H,CheckedList,NewList),
+    check_proof(Prems,T,NewList).
+
+% ___Premiss rule
+% X (premiss) needs to be Premiss line
+check_rule(Prems,[_,X, premise],_):-
+    member(X,Prems).
+
+%___And rule
+%
+check_rule(_,[_,and(X,Y),andint(A,B)],CheckedList):-
+    member([A,X,_],CheckedList),
+    member([B,Y,_],CheckedList).
+
+check_rule(_,[_,X,andel1(A)],CheckedList):-
+    member( [A,and(X,_),_], CheckedList).
+
+check_rule(_,[_,X,andel2(A)],CheckedList):-
+    member([A,and(_,X),_], CheckedList).
+
+% ___OR rule___
+% Looks if
+
+check_rule(_,[_,or(X,Y),orint(A,B)],CheckedList):-
+    member([A,X,_],CheckedList);
+    member([B,Y,_],CheckedList).
+
+%___ implication elimination___
+% Check if A and B are in an Imp(A,B)
+% Find the row for A and put it in Y
+% Find impel(A,B) inside CheckedList
+check_rule(_,[_,X,impel(A,B)],CheckedList):-
+    member([A,Y,_],CheckedList),% Hitta raden för A och lägg i Y
+    member([B,imp(Y,X),_], CheckedList).
+
+
+%___ Copy Rule___
+check_rule(_,[_,X,copy(A)],CheckedList):-
+    member([A,X,_],CheckedList).
+
+%___contradiction___ = Blir alltid true
+check_rule(_,[_,cont,_],_).
+
+%___Contradiction Elimination___
+check_rule(_,[_,_,contel(A)],CheckedList):-
+    member([A,cont,_],CheckedList).
+
+%___LEM___
+check_rule(_,[_,or(X,neg(X)),lem],_).
+
+%___Modulus Tolerans. if P->Q then not P -> not Q ___
+check_rule(_,[_,neg(X),mt(A,B)],CheckedList):-
+    member([A,imp(X,Y),_],CheckedList),
+    member([B,neg(Y),_],CheckedList).
+
+
+
+
+
+
+
+
+
+
+
+
+
